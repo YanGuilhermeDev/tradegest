@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeGest Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#060810;--bg2:#0b0f18;--surface:#0f1520;--surface2:#151d2e;--surface3:#1a2438;--border:#1e2d45;--border2:#253756;--green:#05d98e;--green2:#03b877;--green-g:rgba(5,217,142,0.12);--green-g2:rgba(5,217,142,0.04);--red:#ff4560;--red2:#cc3549;--red-g:rgba(255,69,96,0.12);--yellow:#fbbf24;--blue:#38bdf8;--text:#dde8f5;--text2:#8aa3bf;--text3:#3d5a7a;--fh:'Cabinet Grotesk',sans-serif;--fm:'DM Mono',monospace;--r:12px;--r2:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(56,189,248,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,0.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.blob{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.5}
+.blob-1{width:600px;height:600px;top:-200px;left:-100px;background:radial-gradient(circle,rgba(5,217,142,0.08),transparent 70%)}
+.blob-2{width:500px;height:500px;bottom:-150px;right:-100px;background:radial-gradient(circle,rgba(56,189,248,0.06),transparent 70%)}
+
+/* Auth */
+.auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;position:relative;z-index:10}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:420px;animation:fadeScale .5s ease both}
+.auth-logo{width:56px;height:56px;background:linear-gradient(135deg,var(--green),#03b877);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 0 32px rgba(5,217,142,.3)}
+.auth-logo svg{width:28px;height:28px}
+.auth-title{font-family:var(--fh);font-size:1.4rem;font-weight:800;text-align:center;margin-bottom:4px}
+.auth-title span{color:var(--green)}
+.auth-sub{text-align:center;font-size:.75rem;color:var(--text2);margin-bottom:28px}
+.auth-field{margin-bottom:16px}
+.auth-field label{display:block;font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:6px}
+.auth-field input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:.9rem;padding:12px 14px;border-radius:var(--r2);outline:none;transition:border-color .2s,box-shadow .2s}
+.auth-field input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(5,217,142,.08)}
+.auth-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--green),#03b877);color:#020f08;font-family:var(--fh);font-size:.9rem;font-weight:700;border:none;border-radius:var(--r2);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:all .3s;margin-top:8px}
+.auth-btn:hover{box-shadow:0 6px 36px rgba(5,217,142,.4);transform:translateY(-2px)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.auth-link{text-align:center;margin-top:16px;font-size:.75rem;color:var(--text2)}
+.auth-link a{color:var(--green);cursor:pointer;text-decoration:none}
+.auth-link a:hover{text-decoration:underline}
+.auth-error{background:var(--red-g);border:1px solid rgba(255,69,96,.3);border-radius:var(--r2);padding:10px 14px;font-size:.75rem;color:var(--red);margin-bottom:16px;display:none}
+.auth-success{background:var(--green-g);border:1px solid rgba(5,217,142,.3);border-radius:var(--r2);padding:10px 14px;font-size:.75rem;color:var(--green);margin-bottom:16px;display:none}
+
+/* Layout */
+.app{position:relative;z-index:1;display:flex;min-height:100vh;display:none}
+.sidebar{width:64px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:8px;position:fixed;top:0;left:0;bottom:0;z-index:50;transition:width .3s ease}
+.sidebar-logo{width:38px;height:38px;background:linear-gradient(135deg,var(--green),#03b877);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 0 24px rgba(5,217,142,.3);flex-shrink:0;animation:logoPulse 3s ease-in-out infinite}
+.sidebar-logo svg{width:20px;height:20px}
+@keyframes logoPulse{0%,100%{box-shadow:0 0 24px rgba(5,217,142,.3)}50%{box-shadow:0 0 32px rgba(5,217,142,.5),0 0 64px rgba(5,217,142,.15)}}
+.nav-item{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);color:var(--text3);border:1px solid transparent;flex-shrink:0}
+.nav-item svg{width:20px;height:20px;transition:transform .3s ease}
+.nav-item:hover{background:linear-gradient(135deg,rgba(5,217,142,.06),rgba(56,189,248,.04));border-color:rgba(5,217,142,.2);color:var(--text);transform:scale(1.08);box-shadow:0 0 20px rgba(5,217,142,.1)}
+.nav-item:hover svg{transform:scale(1.1)}
+.nav-item.active{background:linear-gradient(135deg,rgba(5,217,142,.1),rgba(5,217,142,.04));border-color:rgba(5,217,142,.3);color:var(--green);box-shadow:0 0 16px rgba(5,217,142,.12)}
+.nav-sep{width:28px;height:1px;background:var(--border);margin:8px 0}
+
+/* Main */
+.main{margin-left:64px;flex:1;display:flex;flex-direction:column}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--border);background:rgba(6,8,16,.8);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+.topbar-title{font-family:var(--fh);font-size:1.1rem;font-weight:800;letter-spacing:-.5px}
+.topbar-title span{color:var(--green)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:1px}
+.pill-green{background:var(--green-g);border:1px solid rgba(5,217,142,.3);color:var(--green)}
+.pill-role{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);color:var(--blue)}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(5,217,142,.4)}50%{opacity:.6;box-shadow:0 0 0 4px rgba(5,217,142,0)}}
+#clock{font-size:.72rem;color:var(--text2);font-family:var(--fm)}
+.user-menu{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 10px;border-radius:8px;transition:background .2s}
+.user-menu:hover{background:var(--surface2)}
+.user-menu-name{font-size:.75rem;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-menu svg{width:16px;height:16px;color:var(--text3)}
+
+/* Page */
+.page{display:none;padding:24px;max-width:1100px;width:100%;margin:0 auto}
+.page.active{display:block}
+.section-title{font-family:var(--fh);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:var(--text2);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+
+/* Panel */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;position:relative;overflow:hidden;transition:border-color .3s ease,box-shadow .3s ease;animation:slideUp .5s cubic-bezier(.4,0,.2,1) both}
+.panel:hover{border-color:rgba(56,189,248,.12);box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.panel-accent::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,var(--green) 50%,transparent 100%);opacity:.6}
+
+/* Fields */
+.field-grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2)}
+.inp-wrap{position:relative}
+.inp-pre{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--text3);pointer-events:none}
+.inp-suf{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.68rem;color:var(--text2);pointer-events:none}
+input[type="number"],input[type="text"],input[type="email"],input[type="password"],select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:.9rem;padding:11px 14px;border-radius:var(--r2);outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;-moz-appearance:none;appearance:none}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(5,217,142,.08)}
+input[type="number"]{-moz-appearance:textfield}
+input.has-pre{padding-left:32px}
+input.has-suf{padding-right:44px}
+select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238aa3bf' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;appearance:none}
+select option{background:var(--surface2);color:var(--text)}
+
+/* Buttons */
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:var(--fh);font-size:.82rem;font-weight:700;padding:11px 20px;border-radius:var(--r2);border:none;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;position:relative;overflow:hidden}
+.btn svg{width:16px;height:16px;flex-shrink:0}
+.btn-primary{background:linear-gradient(135deg,var(--green),#03b877);color:#020f08;flex:1;padding:13px 24px;font-size:.88rem;box-shadow:0 4px 24px rgba(5,217,142,.25)}
+.btn-primary:hover{background:linear-gradient(135deg,#07f0a0,var(--green));box-shadow:0 6px 36px rgba(5,217,142,.45),0 0 60px rgba(5,217,142,.15);transform:translateY(-2px) scale(1.02)}
+.btn-primary:active{transform:translateY(0) scale(.98)}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-outline:hover{border-color:rgba(5,217,142,.4);color:var(--text);background:linear-gradient(135deg,rgba(5,217,142,.04),transparent);box-shadow:0 0 16px rgba(5,217,142,.06);transform:translateY(-1px)}
+.btn-red{background:transparent;color:var(--red);border:1px solid rgba(255,69,96,.25)}
+.btn-red:hover{background:var(--red-g);border-color:var(--red);box-shadow:0 0 16px rgba(255,69,96,.1);transform:translateY(-1px)}
+.btn-sm{padding:6px 12px;font-size:.68rem;border-radius:6px}
+.btn-blue{background:rgba(56,189,248,.1);color:var(--blue);border:1px solid rgba(56,189,248,.25)}
+.btn-blue:hover{background:rgba(56,189,248,.2);border-color:var(--blue);transform:translateY(-1px)}
+
+/* Stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 16px;position:relative;overflow:hidden;transition:all .35s cubic-bezier(.4,0,.2,1);animation:fadeScale .4s cubic-bezier(.4,0,.2,1) both}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,.3),0 0 24px rgba(5,217,142,.06);border-color:rgba(5,217,142,.2)}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 var(--r) var(--r)}
+.stat-card.sc-green{border-color:rgba(5,217,142,.15)}.stat-card.sc-green::after{background:linear-gradient(90deg,transparent,var(--green),transparent);opacity:.5}
+.stat-card.sc-red{border-color:rgba(255,69,96,.15)}.stat-card.sc-red::after{background:linear-gradient(90deg,transparent,var(--red),transparent);opacity:.5}
+.stat-card.sc-blue{border-color:rgba(56,189,248,.15)}.stat-card.sc-blue::after{background:linear-gradient(90deg,transparent,var(--blue),transparent);opacity:.5}
+.sc-label{font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:8px}
+.sc-value{font-family:var(--fh);font-weight:800;font-size:1.5rem;line-height:1;margin-bottom:4px}
+.sc-value.green{color:var(--green)}.sc-value.red{color:var(--red)}.sc-value.blue{color:var(--blue)}.sc-value.white{color:var(--text)}
+.sc-sub{font-size:.65rem;color:var(--text2)}.sc-sub.green{color:var(--green)}.sc-sub.red{color:var(--red)}
+.stat-card:nth-child(1){animation-delay:.05s}.stat-card:nth-child(2){animation-delay:.1s}.stat-card:nth-child(3){animation-delay:.15s}.stat-card:nth-child(4){animation-delay:.2s}
+
+/* Chart */
+.chart-wrap{position:relative;height:220px;margin-bottom:8px}
+
+/* Operations */
+.ops-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.ops-counter{font-size:.68rem;color:var(--text2);background:var(--surface2);border:1px solid var(--border);padding:4px 12px;border-radius:20px}
+.op-list{display:flex;flex-direction:column;gap:8px}
+.op-empty{text-align:center;padding:48px 24px;color:var(--text3)}
+.op-empty .e-icon{font-size:2.4rem;margin-bottom:10px;opacity:.4;display:block}
+.op-empty p{font-size:.78rem;line-height:1.7;color:var(--text2)}
+.op-row{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;animation:fadeUp .25s ease;transition:all .3s cubic-bezier(.4,0,.2,1)}
+.op-row:hover{border-color:rgba(56,189,248,.2);background:var(--surface3);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.op-row.won{border-color:rgba(5,217,142,.2)}.op-row.won:hover{border-color:rgba(5,217,142,.4);box-shadow:0 6px 24px rgba(5,217,142,.08)}
+.op-row.lost{border-color:rgba(255,69,96,.2)}.op-row.lost:hover{border-color:rgba(255,69,96,.4);box-shadow:0 6px 24px rgba(255,69,96,.08)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.op-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--border2)}
+.op-dot.win{background:var(--green);box-shadow:0 0 8px rgba(5,217,142,.5)}.op-dot.loss{background:var(--red);box-shadow:0 0 8px rgba(255,69,96,.5)}
+.op-info{flex:1;min-width:0}.op-name{font-size:.85rem;color:var(--text);font-family:var(--fh);font-weight:600}.op-meta{font-size:.65rem;color:var(--text2);margin-top:2px}
+.op-result{font-family:var(--fh);font-weight:800;font-size:.95rem;text-align:right;flex-shrink:0}
+.op-result.win{color:var(--green)}.op-result.loss{color:var(--red)}.op-result.pending{color:var(--text3);font-size:.72rem;font-weight:400}
+.op-btns{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.op-win-btn,.op-loss-btn,.op-del-btn{font-family:var(--fh);font-size:.7rem;font-weight:700;padding:6px 12px;border-radius:6px;border:1px solid;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:all .25s cubic-bezier(.4,0,.2,1)}
+.op-win-btn svg,.op-loss-btn svg,.op-del-btn svg{width:14px;height:14px}
+.op-win-btn{background:rgba(5,217,142,.08);color:var(--green);border-color:rgba(5,217,142,.25)}
+.op-win-btn:hover{background:var(--green);color:#020f08;box-shadow:0 0 16px rgba(5,217,142,.3);transform:scale(1.05)}
+.op-loss-btn{background:rgba(255,69,96,.08);color:var(--red);border-color:rgba(255,69,96,.25)}
+.op-loss-btn:hover{background:var(--red);color:#fff;box-shadow:0 0 16px rgba(255,69,96,.3);transform:scale(1.05)}
+.op-del-btn{background:transparent;color:var(--text3);border-color:var(--border);padding:6px 10px;display:flex;align-items:center;justify-content:center}
+.op-del-btn:hover{color:var(--red);border-color:rgba(255,69,96,.25);background:rgba(255,69,96,.06);transform:scale(1.08)}
+.op-undo-btn{font-family:var(--fh);font-size:.68rem;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .25s cubic-bezier(.4,0,.2,1)}
+.op-undo-btn svg{width:14px;height:14px}
+.op-undo-btn:hover{color:var(--text);border-color:var(--text2);transform:translateX(-2px)}
+
+/* Progress */
+.prog-wrap{margin:20px 0 0}.prog-labels{display:flex;justify-content:space-between;font-size:.65rem;color:var(--text2);margin-bottom:6px}
+.prog-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue));transition:width .5s ease;border-radius:99px;background-size:200% 100%;animation:shimmer 3s linear infinite}
+
+/* Stops */
+.stop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.stop-card{border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;transition:all .3s cubic-bezier(.4,0,.2,1);animation:fadeScale .35s cubic-bezier(.4,0,.2,1) both}
+.stop-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(0,0,0,.2)}
+.stop-card.sw{background:var(--green-g2);border:1px solid rgba(5,217,142,.18)}.stop-card.sw:hover{border-color:rgba(5,217,142,.35);box-shadow:0 6px 24px rgba(5,217,142,.1)}
+.stop-card.sl{background:var(--red-g);border:1px solid rgba(255,69,96,.18)}.stop-card.sl:hover{border-color:rgba(255,69,96,.35);box-shadow:0 6px 24px rgba(255,69,96,.1)}
+.sc-info label{font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2)}
+.sc-info .scv{font-family:var(--fh);font-weight:800;font-size:1.15rem;margin-top:3px}
+.scv.green{color:var(--green)}.scv.red{color:var(--red)}
+.sc-icon{opacity:.6;transition:all .3s ease}.sc-icon svg{width:28px;height:28px}
+.stop-card:hover .sc-icon{opacity:.9;transform:scale(1.15)}
+
+/* Alert */
+.alert{border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;margin-top:16px;display:none}
+.alert.sw-alert{background:rgba(5,217,142,.06);border:1px solid rgba(5,217,142,.2)}
+.alert.sl-alert{background:rgba(255,69,96,.06);border:1px solid rgba(255,69,96,.2)}
+.alert-icon{flex-shrink:0;margin-top:1px}.alert-icon svg{width:20px;height:20px}
+.alert-text{font-size:.73rem;color:var(--text2);line-height:1.6}.alert-text strong{color:var(--text)}
+
+/* Toast */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--surface3);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:.76rem;color:var(--text);box-shadow:0 8px 40px rgba(0,0,0,.5);transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:999;display:flex;align-items:center;gap:10px;max-width:280px}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* Add op form */
+.add-op-form{background:var(--surface2);border:1px dashed var(--border2);border-radius:10px;padding:16px;margin-top:12px;display:none}
+.add-op-form.open{display:block}
+.add-op-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.add-op-row .field{flex:1;min-width:120px}
+
+/* Dashboard row */
+.dash-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+
+/* Mini bars */
+.mini-bars{display:flex;gap:4px;margin-top:12px;height:36px;align-items:flex-end}
+.mini-bar{flex:1;border-radius:3px 3px 0 0;min-height:4px;transition:height .4s ease}
+.mini-bar.win{background:var(--green);opacity:.7}.mini-bar.loss{background:var(--red);opacity:.7}.mini-bar.none{background:var(--border);opacity:.4}
+
+/* Divider */
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:24px 0}
+
+/* Table */
+.data-table{width:100%;border-collapse:separate;border-spacing:0;font-size:.78rem}
+.data-table th{text-align:left;padding:10px 14px;font-size:.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:600}
+.data-table td{padding:10px 14px;border-bottom:1px solid rgba(30,45,69,.4);vertical-align:middle}
+.data-table tr:hover td{background:rgba(5,217,142,.02)}
+.data-table .status-active{color:var(--green);font-weight:600}.data-table .status-inactive{color:var(--red);font-weight:600}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:460px;animation:fadeScale .3s ease both;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--fh);font-size:1.1rem;font-weight:800;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.modal-close{margin-left:auto;width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.modal-close:hover{border-color:var(--red);color:var(--red);background:rgba(255,69,96,.06)}
+.modal-close svg{width:16px;height:16px}
+
+/* History */
+.history-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .2s}
+.history-item:hover{border-color:rgba(5,217,142,.2)}
+.history-header{padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.history-header:hover{background:var(--surface2)}
+.history-details{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.history-item.open .history-details{display:block}
+.history-badge{font-size:.65rem;padding:3px 10px;border-radius:12px;font-weight:600}
+.history-badge.profit{background:var(--green-g);color:var(--green);border:1px solid rgba(5,217,142,.2)}
+.history-badge.loss-badge{background:var(--red-g);color:var(--red);border:1px solid rgba(255,69,96,.2)}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.filter-tab{padding:6px 16px;border-radius:20px;font-size:.7rem;font-family:var(--fh);font-weight:600;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .2s}
+.filter-tab:hover{border-color:rgba(5,217,142,.3);color:var(--text)}
+.filter-tab.active{background:var(--green-g);border-color:rgba(5,217,142,.4);color:var(--green)}
+
+/* Profile */
+.profile-card{display:flex;align-items:center;gap:20px;margin-bottom:24px}
+.profile-avatar{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--green),var(--blue));display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:1.5rem;font-weight:800;color:#020f08}
+.profile-info h2{font-family:var(--fh);font-size:1.2rem;font-weight:800;margin-bottom:2px}
+.profile-info p{font-size:.75rem;color:var(--text2)}
+
+/* Mobile */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 0 env(safe-area-inset-bottom,10px);z-index:60;justify-content:space-around}
+.mob-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text3);font-size:.58rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;padding:4px 12px;transition:color .2s}
+.mob-nav-item svg{width:20px;height:20px}
+.mob-nav-item.active{color:var(--green)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Responsive */
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding-bottom:70px}.topbar{padding:12px 16px}.page{padding:16px}.stat-grid{grid-template-columns:1fr 1fr}.g2,.g3,.g4{grid-template-columns:1fr 1fr}.dash-row{grid-template-columns:1fr}.stop-grid{grid-template-columns:1fr 1fr}.mob-nav{display:flex}.topbar-right #clock{display:none}.op-win-btn span,.op-loss-btn span{display:none}.op-win-btn,.op-loss-btn{padding:6px 8px}.user-menu-name{display:none}}
+@media(max-width:480px){.stat-grid{grid-template-columns:1fr 1fr;gap:8px}.sc-value{font-size:1.15rem}.g2,.g3,.g4{grid-template-columns:1fr}.stop-grid{grid-template-columns:1fr}.btn-row{flex-direction:column}.btn-primary{width:100%}.add-op-row{flex-direction:column}.add-op-row .field{width:100%}}
+
+/* Animations */
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeScale{from{opacity:0;transform:scale(.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.section-title{animation:slideUp .4s ease both}
+.pill{animation:fadeScale .4s ease .2s both}
+.stop-card:nth-child(1){animation-delay:.1s}.stop-card:nth-child(2){animation-delay:.18s}
+
+/* Loading */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:.8rem;color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading-overlay">
+<div class="loading-spinner"></div>
+<div class="loading-text">Carregando...</div>
+</div>
+
+<!-- AUTH: LOGIN -->
+<div class="auth-screen" id="screen-login" style="display:none">
+<div class="auth-card">
+<div class="auth-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#020f08" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+<div class="auth-title">Trade<span>Gest</span> Pro</div>
+<div class="auth-sub">Faça login para continuar</div>
+<div class="auth-error" id="login-error"></div>
+<div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="seu@email.com"></div>
+<div class="auth-field"><label>Senha</label><input type="password" id="login-password" placeholder="••••••••"></div>
+<button class="auth-btn" id="login-btn" onclick="handleLogin()">Entrar</button>
+<div class="auth-link"><a onclick="showScreen('recover')">Esqueci minha senha</a></div>
+</div>
+</div>
+
+<!-- AUTH: RECOVER -->
+<div class="auth-screen" id="screen-recover" style="display:none">
+<div class="auth-card">
+<div class="auth-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#020f08" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+<div class="auth-title">Recuperar <span>Senha</span></div>
+<div class="auth-sub">Enviaremos um link de redefinição para seu email</div>
+<div class="auth-error" id="recover-error"></div>
+<div class="auth-success" id="recover-success"></div>
+<div class="auth-field"><label>Email</label><input type="email" id="recover-email" placeholder="seu@email.com"></div>
+<button class="auth-btn" onclick="handleRecover()">Enviar Link</button>
+<div class="auth-link"><a onclick="showScreen('login')">← Voltar ao login</a></div>
+</div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar"></aside>
+
+<div class="main">
+<!-- Topbar -->
+<div class="topbar">
+<div class="topbar-title">Trade<span>Gest</span> Pro</div>
+<div class="topbar-right">
+<div class="pill pill-green"><span class="live-dot"></span> Ao Vivo</div>
+<div class="pill pill-role" id="role-pill"></div>
+<div id="clock"></div>
+<div class="user-menu" onclick="handleLogout()" title="Sair">
+<span class="user-menu-name" id="user-name"></span>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+</div>
+</div>
+</div>
+
+<!-- Pages will be injected by JS -->
+<div id="pages-container"></div>
+</div>
+</div>
+
+<!-- Mobile nav -->
+<nav class="mob-nav" id="mob-nav"></nav>
+
+<!-- Toast -->
+<div id="toast"><span id="t-icon"></span><span id="t-msg"></span></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+<div class="modal" id="modal-content"></div>
+</div>
+
+<!-- PLACEHOLDER: JS will be added next -->
+<script>
+// ═══════════════════════════════════════
+//  SUPABASE CONFIG — substitua aqui
+// ═══════════════════════════════════════
+const SUPABASE_URL = 'https://ggxbefctgtpdcpvttiao.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdneGJlZmN0Z3RwZGNwdnR0aWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3OTA5MDIsImV4cCI6MjA5MzM2NjkwMn0.-tAm-WDQ3nmmhsEvsYcL7qaWicy6_G3JcJ09jVQWz30';
+// sb será inicializado no boot()
+
+// ═══════════════════════════════════════
+//  GLOBAL STATE
+// ═══════════════════════════════════════
+let currentUser = null; // {id, email, nome, role, plano_id, admin_id}
+let ST = { active:false, sessionId:null, capital:0, entryValue:0, expectedWins:0, payout:0, slPct:25, stopWin:0, stopLoss:0, currentCapital:0, ops:[], totalOps:0 };
+let chart = null;
+let offlineQueue = [];
+
+// ═══════════════════════════════════════
+//  ICONS
+// ═══════════════════════════════════════
+const I = {
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M20 6L9 17l-5-5"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  rocket:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+  undo:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  bC:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  bX:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  bT:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  bU:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+};
+const SVG = {
+  pulse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  crown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l3 12h14l3-12-5 4-5-4-5 4-3-4z"/><path d="M5 16h14v4H5z"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/><path d="M18 9v6a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>',
+  shieldX:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>',
+  alertTri:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  play:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+  reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+};
+
+// ═══════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════
+function fmt(v){const s=v<0?'-':'';return s+'R$ '+Math.abs(v).toFixed(2).replace('.',',')}
+function fmtPct(v,ref){if(!ref)return '—';const p=((v-ref)/ref*100);return (p>=0?'+':'')+p.toFixed(2)+'%'}
+function fmtDate(d){if(!d)return '—';const dt=new Date(d);return dt.toLocaleDateString('pt-BR')}
+function fmtTime(d){if(!d)return '';const dt=new Date(d);return dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+function toast(msg,icon=I.check){const el=document.getElementById('toast');document.getElementById('t-msg').textContent=msg;document.getElementById('t-icon').innerHTML=icon+' ';el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3200)}
+function $(id){return document.getElementById(id)}
+function tick(){const c=$('clock');if(c)c.textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+setInterval(tick,1000);tick();
+
+// ═══════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ═══════════════════════════════════════
+function showScreen(name){
+  ['screen-login','screen-recover'].forEach(id=>{const e=$(id);if(e)e.style.display='none'});
+  $('app').style.display='none';
+  $('loading-overlay').style.display='none';
+  if(name==='app'){$('app').style.display='flex';}
+  else{const e=$('screen-'+name);if(e)e.style.display='flex';}
+}
+
+// ═══════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════
+async function handleLogin(){
+  const email=$('login-email').value.trim();
+  const pw=$('login-password').value;
+  const errEl=$('login-error');
+  errEl.style.display='none';
+  if(!email||!pw){errEl.textContent='Preencha todos os campos.';errEl.style.display='block';return}
+  $('login-btn').disabled=true;$('login-btn').textContent='Entrando...';
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  $('login-btn').disabled=false;$('login-btn').textContent='Entrar';
+  if(error){errEl.textContent=error.message==='Invalid login credentials'?'Email ou senha incorretos.':error.message;errEl.style.display='block';return}
+  await loadUser(data.user.id);
+}
+async function handleRecover(){
+  const email=$('recover-email').value.trim();
+  const errEl=$('recover-error');const sucEl=$('recover-success');
+  errEl.style.display='none';sucEl.style.display='none';
+  if(!email){errEl.textContent='Informe seu email.';errEl.style.display='block';return}
+  const{error}=await sb.auth.resetPasswordForEmail(email);
+  if(error){errEl.textContent=error.message;errEl.style.display='block';return}
+  sucEl.textContent='Email de recuperação enviado! Verifique sua caixa de entrada.';sucEl.style.display='block';
+}
+async function handleLogout(){
+  if(!confirm('Deseja sair?'))return;
+  await sb.auth.signOut();
+  currentUser=null;showScreen('login');
+}
+async function loadUser(uid){
+  console.log('Tentando carregar perfil para UID:', uid);
+  const{data,error}=await sb.from('usuarios').select('*').eq('id',uid).single();
+  if(error||!data){
+    console.error('Erro loadUser Detalhado:', error);
+    const msg = error ? `Erro DB: ${error.message} (Code: ${error.code})` : 'Usuário não encontrado na tabela.';
+    toast(msg, I.warn);
+    await sb.auth.signOut();
+    showScreen('login');
+    return;
+  }
+  if(!data.ativo){toast('Conta desativada. Contate o administrador.', I.warn);await sb.auth.signOut();showScreen('login');return}
+  currentUser=data;
+  await sb.from('usuarios').update({ultimo_acesso:new Date().toISOString()}).eq('id',uid);
+  initApp();
+}
+
+// ═══════════════════════════════════════
+//  INIT APP — builds sidebar + pages based on role
+// ═══════════════════════════════════════
+function initApp(){
+  $('user-name').textContent=currentUser.nome||currentUser.email;
+  const roleLabels={superadmin:'Super Admin',admin:'Admin',user:'Trader'};
+  $('role-pill').textContent=roleLabels[currentUser.role]||'';
+  buildSidebar();
+  buildPages();
+  buildMobNav();
+  showScreen('app');
+  // Show first page
+  const pages=getPages();
+  if(pages.length)showPage(pages[0].id);
+}
+
+function getPages(){
+  const r=currentUser.role;
+  if(r==='superadmin')return[
+    {id:'sa-overview',label:'Painel',icon:SVG.crown},
+    {id:'sa-admins',label:'Admins',icon:SVG.users},
+    {id:'sa-plans',label:'Planos',icon:SVG.box},
+  ];
+  if(r==='admin')return[
+    {id:'adm-overview',label:'Painel',icon:SVG.shield},
+    {id:'adm-users',label:'Usuários',icon:SVG.users},
+  ];
+  return[
+    {id:'config',label:'Configurar',icon:SVG.gear},
+    {id:'dashboard',label:'Dashboard',icon:SVG.chart},
+    {id:'ops',label:'Operações',icon:SVG.list},
+    {id:'history',label:'Histórico',icon:SVG.clock},
+    {id:'profile',label:'Perfil',icon:SVG.user},
+  ];
+}
+
+function buildSidebar(){
+  const sb2=$('sidebar');
+  sb2.innerHTML=`<div class="sidebar-logo">${SVG.pulse}</div>`+
+    getPages().map((p,i)=>`<div class="nav-item${i===0?' active':''}" onclick="showPage('${p.id}')" title="${p.label}">${p.icon}</div>`).join('');
+}
+
+function buildMobNav(){
+  const mn=$('mob-nav');
+  mn.innerHTML=getPages().map((p,i)=>`<div class="mob-nav-item${i===0?' active':''}" onclick="showPage('${p.id}')" id="mn-${p.id}"><span class="mn-icon">${p.icon}</span>${p.label}</div>`).join('');
+}
+
+let currentPage='';
+function showPage(name){
+  currentPage=name;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el=$('page-'+name);if(el)el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pages=getPages();const idx=pages.findIndex(p=>p.id===name);
+  document.querySelectorAll('.sidebar .nav-item')[idx]?.classList.add('active');
+  document.querySelectorAll('.mob-nav-item').forEach(n=>n.classList.remove('active'));
+  const mn=$('mn-'+name);if(mn)mn.classList.add('active');
+  // Load data for page
+  if(name==='dashboard'&&currentUser.role==='user')updateChart();
+  if(name==='history')loadHistory();
+  if(name==='profile')loadProfile();
+  if(name==='sa-overview')loadSAOverview();
+  if(name==='sa-admins')loadSAAdmins();
+  if(name==='sa-plans')loadSAPlans();
+  if(name==='adm-overview')loadAdmOverview();
+  if(name==='adm-users')loadAdmUsers();
+}
+
+function buildPages(){
+  const c=$('pages-container');
+  const r=currentUser.role;
+  if(r==='superadmin'){c.innerHTML=buildSuperadminPages();}
+  else if(r==='admin'){c.innerHTML=buildAdminPages();}
+  else{c.innerHTML=buildUserPages();}
+}
+
+// ═══════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════
+function openModal(title,body){
+  $('modal-content').innerHTML=`<div class="modal-title">${title}<button class="modal-close" onclick="closeModal()">${SVG.close}</button></div>${body}`;
+  $('modal-overlay').classList.add('open');
+}
+function closeModal(){$('modal-overlay').classList.remove('open')}
+
+// ═══════════════════════════════════════
+//  SUPERADMIN PAGES HTML
+// ═══════════════════════════════════════
+function buildSuperadminPages(){return `
+<div class="page" id="page-sa-overview">
+  <div class="section-title">Visão Geral do Sistema</div>
+  <div class="stat-grid" id="sa-stats"></div>
+  <div class="section-title" style="margin-top:24px">Admins Recentes</div>
+  <div class="panel"><div id="sa-recent-admins"><p style="color:var(--text3);font-size:.8rem">Carregando...</p></div></div>
+</div>
+<div class="page" id="page-sa-admins">
+  <div class="ops-toolbar">
+    <div class="section-title" style="margin-bottom:0;flex:1">Gerenciar Admins</div>
+    <button class="btn btn-primary btn-sm" onclick="modalCreateAdmin()">+ Novo Admin</button>
+  </div>
+  <div class="panel"><div id="sa-admins-table"><p style="color:var(--text3);font-size:.8rem">Carregando...</p></div></div>
+</div>
+<div class="page" id="page-sa-plans">
+  <div class="ops-toolbar">
+    <div class="section-title" style="margin-bottom:0;flex:1">Gerenciar Planos</div>
+    <button class="btn btn-primary btn-sm" onclick="modalCreatePlan()">+ Novo Plano</button>
+  </div>
+  <div class="panel"><div id="sa-plans-table"><p style="color:var(--text3);font-size:.8rem">Carregando...</p></div></div>
+</div>`}
+
+// ═══════════════════════════════════════
+//  ADMIN PAGES HTML
+// ═══════════════════════════════════════
+function buildAdminPages(){return `
+<div class="page" id="page-adm-overview">
+  <div class="section-title">Painel do Admin</div>
+  <div class="stat-grid" id="adm-stats"></div>
+  <div class="section-title" style="margin-top:24px">Estatísticas dos Usuários</div>
+  <div class="panel"><div id="adm-user-stats"><p style="color:var(--text3);font-size:.8rem">Carregando...</p></div></div>
+</div>
+<div class="page" id="page-adm-users">
+  <div class="ops-toolbar">
+    <div class="section-title" style="margin-bottom:0;flex:1">Meus Usuários</div>
+    <button class="btn btn-primary btn-sm" id="adm-add-user-btn" onclick="modalCreateUser()">+ Novo Usuário</button>
+  </div>
+  <div class="panel"><div id="adm-users-table"><p style="color:var(--text3);font-size:.8rem">Carregando...</p></div></div>
+</div>`}
+
+// ═══════════════════════════════════════
+//  USER PAGES HTML
+// ═══════════════════════════════════════
+function buildUserPages(){return `
+<div class="page" id="page-config">
+  <div class="section-title">Configurar Sessão</div>
+  <div class="panel panel-accent" style="margin-bottom:20px">
+    <div class="field-grid g2" style="margin-bottom:14px">
+      <div class="field"><label>Capital da Banca</label><div class="inp-wrap"><span class="inp-pre">R$</span><input type="number" id="cfg-capital" class="has-pre" value="500" min="1" step="0.01"></div></div>
+      <div class="field"><label>Valor por Entrada</label><div class="inp-wrap"><span class="inp-pre">R$</span><input type="number" id="cfg-entry" class="has-pre" value="50" min="1" step="0.01"></div></div>
+    </div>
+    <div class="field-grid g4" style="margin-bottom:14px">
+      <div class="field"><label>Total de Operações</label><input type="number" id="cfg-total" value="10" min="1" max="200"></div>
+      <div class="field"><label>Vitórias Esperadas</label><div class="inp-wrap"><input type="number" id="cfg-wins" class="has-suf" value="3" min="1"><span class="inp-suf" id="win-pct-suf">— %</span></div></div>
+      <div class="field"><label>Payout</label><input type="number" id="cfg-payout" value="1.85" min="1" step="0.01"></div>
+      <div class="field"><label>Stop Loss (%)</label><div class="inp-wrap"><input type="number" id="cfg-sl" class="has-suf" value="25" min="1" max="100"><span class="inp-suf">%</span></div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="iniciarSessao()">${SVG.play} Iniciar Sessão</button>
+      <button class="btn btn-outline btn-sm" onclick="resetarConfig()">${SVG.reset} Resetar</button>
+    </div>
+  </div>
+  <div id="cfg-preview" style="display:none">
+    <div class="section-title">Resumo Calculado</div>
+    <div class="stat-grid">
+      <div class="stat-card sc-green"><div class="sc-label">Resultado Esperado</div><div class="sc-value green" id="p-resultado">—</div><div class="sc-sub green" id="p-resultado-pct">—</div></div>
+      <div class="stat-card sc-green"><div class="sc-label">Stop Win Meta</div><div class="sc-value green" id="p-stopwin">—</div><div class="sc-sub green">Encerre com lucro</div></div>
+      <div class="stat-card sc-red"><div class="sc-label">Stop Loss Máx</div><div class="sc-value red" id="p-stoploss">—</div><div class="sc-sub red" id="p-sl-pct">—</div></div>
+      <div class="stat-card sc-blue"><div class="sc-label">Lucro Bruto Est.</div><div class="sc-value blue" id="p-lucro">—</div><div class="sc-sub">Sem descontar perdas</div></div>
+    </div>
+    <div class="stop-grid">
+      <div class="stop-card sw"><div class="sc-info"><label>Stop Win Recomendado</label><div class="scv green" id="p-sw2">—</div></div><div class="sc-icon">${SVG.trophy}</div></div>
+      <div class="stop-card sl"><div class="sc-info"><label>Stop Loss Recomendado</label><div class="scv red" id="p-sl2">—</div></div><div class="sc-icon">${SVG.shieldX}</div></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-dashboard">
+  <div class="section-title">Dashboard em Tempo Real</div>
+  <div class="stat-grid" id="dash-stats">
+    <div class="stat-card"><div class="sc-label">Capital Atual</div><div class="sc-value white" id="d-capital">R$ —</div><div class="sc-sub" id="d-capital-diff">Configure a sessão</div></div>
+    <div class="stat-card sc-green"><div class="sc-label">Lucro / Prejuízo</div><div class="sc-value green" id="d-pnl">R$ —</div><div class="sc-sub" id="d-pnl-pct">—</div></div>
+    <div class="stat-card"><div class="sc-label">Win Rate</div><div class="sc-value white" id="d-wr">— %</div><div class="sc-sub" id="d-wr-sub">—</div></div>
+    <div class="stat-card"><div class="sc-label">Vitórias / Derrotas</div><div class="sc-value white" id="d-vd">0 / 0</div><div class="sc-sub" id="d-ops-done">Nenhuma operação</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div style="font-family:var(--fh);font-weight:700;font-size:.85rem">Evolução do Capital</div>
+      <div id="chart-badge" class="pill pill-green" style="display:none"></div>
+    </div>
+    <div class="chart-wrap"><canvas id="capitalChart"></canvas></div>
+    <div class="prog-wrap"><div class="prog-labels"><span>Progresso da sessão</span><span id="d-prog-label">0 ops</span></div><div class="prog-bar"><div class="prog-fill" id="d-prog-fill" style="width:0%"></div></div></div>
+  </div>
+  <div class="dash-row">
+    <div class="panel"><div style="font-family:var(--fh);font-weight:700;font-size:.82rem;margin-bottom:4px">Histórico Visual</div><div style="font-size:.65rem;color:var(--text2)">Cada barra = uma operação</div><div class="mini-bars" id="mini-bars"></div></div>
+    <div class="panel">
+      <div style="font-family:var(--fh);font-weight:700;font-size:.82rem;margin-bottom:12px">Stops da Sessão</div>
+      <div class="stop-grid" style="margin-top:0">
+        <div class="stop-card sw"><div class="sc-info"><label>Stop Win</label><div class="scv green" id="d-sw">—</div></div><div class="sc-icon">${SVG.trophy}</div></div>
+        <div class="stop-card sl"><div class="sc-info"><label>Stop Loss</label><div class="scv red" id="d-sl">—</div></div><div class="sc-icon">${SVG.shieldX}</div></div>
+      </div>
+      <div class="alert sw-alert" id="alert-sw"><span class="alert-icon">${SVG.trophy}</span><div class="alert-text"><strong>Stop Win atingido!</strong> Encerre a sessão e proteja seu lucro.</div></div>
+      <div class="alert sl-alert" id="alert-sl"><span class="alert-icon">${SVG.alertTri}</span><div class="alert-text"><strong>Stop Loss atingido!</strong> Pare agora e proteja sua banca.</div></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-ops">
+  <div class="ops-toolbar">
+    <div class="section-title" style="margin-bottom:0;flex:1">Registro de Operações</div>
+    <div class="ops-counter" id="ops-counter">0 ops</div>
+    <button class="btn btn-outline btn-sm" onclick="toggleAddForm()">+ Extra</button>
+    <button class="btn btn-red btn-sm" id="btn-finish" onclick="finalizarSessao()" style="display:none">Encerrar Sessão</button>
+  </div>
+  <div class="add-op-form" id="add-op-form">
+    <div class="add-op-row">
+      <div class="field"><label>Nome (opcional)</label><input type="text" id="new-op-name" placeholder="Ex: EUR/USD 09:30"></div>
+      <div class="field"><label>Valor entrada (R$)</label><input type="number" id="new-op-val" placeholder="50" step="0.01" min="0.01"></div>
+      <button class="btn btn-primary btn-sm" onclick="adicionarOp()" style="flex:0 0 auto;padding:11px 18px">Adicionar</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleAddForm()" style="flex:0 0 auto;padding:11px 14px">✕</button>
+    </div>
+  </div>
+  <div class="op-list" id="op-list">
+    <div class="op-empty" id="op-empty"><span class="e-icon">${SVG.list}</span><p>Inicie uma sessão para ver as operações pré-carregadas aqui.</p></div>
+  </div>
+</div>
+<div class="page" id="page-history">
+  <div class="section-title">Histórico de Sessões</div>
+  <div class="stat-grid" id="hist-stats"></div>
+  <div class="filter-tabs" id="hist-filters">
+    <button class="filter-tab active" onclick="filterHistory('all',this)">Todos</button>
+    <button class="filter-tab" onclick="filterHistory('today',this)">Hoje</button>
+    <button class="filter-tab" onclick="filterHistory('week',this)">Semana</button>
+    <button class="filter-tab" onclick="filterHistory('month',this)">Mês</button>
+  </div>
+  <div id="hist-list"><p style="color:var(--text3);font-size:.8rem;text-align:center;padding:40px">Carregando...</p></div>
+</div>
+<div class="page" id="page-profile">
+  <div class="section-title">Meu Perfil</div>
+  <div id="profile-content"></div>
+</div>`}
+
+// ═══════════════════════════════════════
+//  CONFIG PREVIEW (user)
+// ═══════════════════════════════════════
+function setupConfigListeners(){
+  ['cfg-capital','cfg-entry','cfg-total','cfg-wins','cfg-payout','cfg-sl'].forEach(id=>{
+    const el=$(id);if(el)el.addEventListener('input',updateWinPct);
+  });
+}
+function updateWinPct(){
+  const w=+($('cfg-wins')?.value||0);const total=+($('cfg-total')?.value||0);
+  if(total>0){const pct=Math.round(w/total*100);const s=$('win-pct-suf');if(s)s.textContent=pct+'%';}
+  previewCalc();
+}
+function previewCalc(){
+  const capital=parseFloat($('cfg-capital')?.value)||0;const entry=parseFloat($('cfg-entry')?.value)||0;
+  const totalOps=parseInt($('cfg-total')?.value)||0;const wins=parseInt($('cfg-wins')?.value)||0;
+  const payout=parseFloat($('cfg-payout')?.value)||0;const slPct=parseFloat($('cfg-sl')?.value)||25;
+  if(!capital||!entry||!totalOps||!wins||!payout)return;
+  const losses=Math.max(0,totalOps-wins);const gross=wins*entry*payout;
+  const netPnl=gross-(wins*entry)-(losses*entry);const expectedCapital=capital+netPnl;
+  const stopLoss=capital*(slPct/100);const stopWin=Math.max(netPnl,capital*0.03);
+  const pe=$('cfg-preview');if(pe)pe.style.display='block';
+  const s=id=>$(id);
+  if(s('p-resultado'))s('p-resultado').textContent=fmt(expectedCapital);
+  if(s('p-resultado-pct'))s('p-resultado-pct').textContent=fmtPct(expectedCapital,capital);
+  if(s('p-stopwin'))s('p-stopwin').textContent=fmt(capital+stopWin);
+  if(s('p-stoploss'))s('p-stoploss').textContent=fmt(capital-stopLoss);
+  if(s('p-sl-pct'))s('p-sl-pct').textContent='-'+slPct.toFixed(0)+'% da banca';
+  if(s('p-lucro'))s('p-lucro').textContent=fmt(gross);
+  if(s('p-sw2'))s('p-sw2').textContent='+'+fmt(stopWin);
+  if(s('p-sl2'))s('p-sl2').textContent='-'+fmt(stopLoss);
+}
+function resetarConfig(){
+  const s=(id,v)=>{const e=$(id);if(e)e.value=v};
+  s('cfg-capital',500);s('cfg-entry',50);s('cfg-total',10);s('cfg-wins',3);s('cfg-payout',1.85);s('cfg-sl',25);
+  const pe=$('cfg-preview');if(pe)pe.style.display='none';
+  const ws=$('win-pct-suf');if(ws)ws.textContent='— %';
+}
+
+// ═══════════════════════════════════════
+//  CHART
+// ═══════════════════════════════════════
+function chartData(){const pts=[ST.capital];ST.ops.filter(o=>o.result!=='pendente'&&o.result!==null).forEach(o=>{pts.push(o.capitalAfter||pts[pts.length-1])});return pts}
+function initChart(){
+  const cv=$('capitalChart');if(!cv)return;const ctx=cv.getContext('2d');if(chart)chart.destroy();
+  const data=chartData();const color=data.at(-1)>=ST.capital?'#05d98e':'#ff4560';
+  chart=new Chart(ctx,{type:'line',data:{labels:data.map((_,i)=>i===0?'Início':`Op ${i}`),datasets:[{data,borderColor:color,borderWidth:2.5,pointBackgroundColor:data.map((v,i)=>{if(i===0)return'#38bdf8';const op=ST.ops.filter(o=>o.result!=='pendente'&&o.result!==null)[i-1];return op?(op.result==='win'?'#05d98e':'#ff4560'):'#3d5a7a'}),pointRadius:data.map((_,i)=>i===0?5:4),pointHoverRadius:6,fill:true,backgroundColor:c2=>{const g=c2.chart.ctx.createLinearGradient(0,0,0,220);g.addColorStop(0,color+'30');g.addColorStop(1,color+'00');return g},tension:.35}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1520',borderColor:'#1e2d45',borderWidth:1,titleColor:'#8aa3bf',bodyColor:'#dde8f5',titleFont:{family:'DM Mono',size:11},bodyFont:{family:'Cabinet Grotesk',size:13,weight:'bold'},callbacks:{label:c3=>' '+fmt(c3.raw)}}},scales:{x:{grid:{color:'rgba(30,45,69,0.5)'},ticks:{color:'#3d5a7a',font:{family:'DM Mono',size:10}}},y:{grid:{color:'rgba(30,45,69,0.5)'},ticks:{color:'#3d5a7a',font:{family:'DM Mono',size:10},callback:v=>'R$'+v.toFixed(0)}}}}});
+}
+function updateChart(){if(!chart){initChart();return}const data=chartData();const color=data.length>1&&data.at(-1)>=ST.capital?'#05d98e':'#ff4560';chart.data.labels=data.map((_,i)=>i===0?'Início':`Op ${i}`);chart.data.datasets[0].data=data;chart.data.datasets[0].borderColor=color;chart.data.datasets[0].pointBackgroundColor=data.map((v,i)=>{if(i===0)return'#38bdf8';const op=ST.ops.filter(o=>o.result!=='pendente'&&o.result!==null)[i-1];return op?(op.result==='win'?'#05d98e':'#ff4560'):'#3d5a7a'});chart.data.datasets[0].backgroundColor=c2=>{const g=c2.chart.ctx.createLinearGradient(0,0,0,220);g.addColorStop(0,color+'30');g.addColorStop(1,color+'00');return g};chart.update('active')}
+
+// ═══════════════════════════════════════
+//  SESSION — Iniciar
+// ═══════════════════════════════════════
+async function iniciarSessao(){
+  const capital=parseFloat($('cfg-capital')?.value);const entry=parseFloat($('cfg-entry')?.value);
+  const totalOps=parseInt($('cfg-total')?.value);const wins=parseInt($('cfg-wins')?.value);
+  const payout=parseFloat($('cfg-payout')?.value);const slPct=parseFloat($('cfg-sl')?.value);
+  if(!capital||!entry||!totalOps||!wins||!payout||!slPct){toast('Preencha todos os campos!',I.warn);return}
+  if(entry>capital){toast('Entrada maior que o capital!',I.warn);return}
+  if(wins>totalOps){toast('Vitórias > total!',I.warn);return}
+  const losses=Math.max(0,totalOps-wins);const gross=wins*entry*payout;
+  const netPnl=gross-(wins*entry)-(losses*entry);
+  const stopWin=Math.max(netPnl,capital*0.03);const stopLoss=capital*(slPct/100);
+  // Insert session
+  const{data:sess,error:se}=await sb.from('sessoes').insert({usuario_id:currentUser.id,capital,valor_entrada:entry,total_ops:totalOps,wins_esperados:wins,payout,stop_loss_pct:slPct}).select().single();
+  if(se){toast('Erro ao criar sessão: '+se.message,I.warn);return}
+  // Insert operations
+  const opsData=Array.from({length:totalOps},(_,i)=>({sessao_id:sess.id,usuario_id:currentUser.id,nome:`Operação ${i+1}`,valor_entrada:entry,resultado:'pendente',lucro:0,ordem:i+1}));
+  const{data:opsRows,error:oe}=await sb.from('operacoes').insert(opsData).select().order('ordem');
+  if(oe){toast('Erro ao criar operações: '+oe.message,I.warn);return}
+  ST={active:true,sessionId:sess.id,capital,entryValue:entry,totalOps,expectedWins:wins,payout,slPct,stopWin,stopLoss,currentCapital:capital,ops:opsRows.map(o=>({dbId:o.id,name:o.nome,value:+o.valor_entrada,result:null,profit:null,capitalAfter:null,ts:null,ordem:o.ordem}))};
+  if(chart)chart.destroy();chart=null;
+  updateAll();renderOps();
+  const fb=$('btn-finish');if(fb)fb.style.display='inline-flex';
+  toast(`Sessão iniciada com ${totalOps} operações!`,I.rocket);showPage('ops');
+}
+
+// ═══════════════════════════════════════
+//  SESSION — Restaurar ativa
+// ═══════════════════════════════════════
+async function restoreActiveSession(){
+  const{data:sess}=await sb.from('sessoes').select('*').eq('usuario_id',currentUser.id).eq('status','ativa').order('criado_em',{ascending:false}).limit(1).single();
+  if(!sess)return;
+  const{data:ops}=await sb.from('operacoes').select('*').eq('sessao_id',sess.id).order('ordem');
+  if(!ops)return;
+  const losses2=Math.max(0,sess.total_ops-sess.wins_esperados);const gross2=sess.wins_esperados*sess.valor_entrada*sess.payout;
+  const netPnl2=gross2-(sess.wins_esperados*sess.valor_entrada)-(losses2*sess.valor_entrada);
+  const stopWin2=Math.max(netPnl2,sess.capital*0.03);const stopLoss2=sess.capital*(sess.stop_loss_pct/100);
+  let cap=+sess.capital;
+  const mapped=ops.map(o=>{
+    const isDone=o.resultado!=='pendente';
+    let profit=null,capAfter=null;
+    if(isDone){profit=o.resultado==='win'?(+o.valor_entrada)*(+sess.payout)-(+o.valor_entrada):-(+o.valor_entrada);cap+=profit;capAfter=cap;}
+    return{dbId:o.id,name:o.nome,value:+o.valor_entrada,result:isDone?o.resultado:null,profit,capitalAfter:capAfter,ts:o.horario_registro,ordem:o.ordem};
+  });
+  ST={active:true,sessionId:sess.id,capital:+sess.capital,entryValue:+sess.valor_entrada,totalOps:sess.total_ops,expectedWins:sess.wins_esperados,payout:+sess.payout,slPct:+sess.stop_loss_pct,stopWin:stopWin2,stopLoss:stopLoss2,currentCapital:cap,ops:mapped};
+  if(chart)chart.destroy();chart=null;
+  updateAll();renderOps();
+  const fb=$('btn-finish');if(fb)fb.style.display='inline-flex';
+}
+
+// ═══════════════════════════════════════
+//  SESSION — Finalizar
+// ═══════════════════════════════════════
+async function finalizarSessao(){
+  if(!ST.active||!confirm('Encerrar esta sessão?'))return;
+  const pnl=ST.currentCapital-ST.capital;
+  await sb.from('sessoes').update({status:'concluida',capital_final:ST.currentCapital,resultado_liquido:pnl,concluida_em:new Date().toISOString()}).eq('id',ST.sessionId);
+  ST={active:false,sessionId:null,capital:0,entryValue:0,expectedWins:0,payout:0,slPct:25,stopWin:0,stopLoss:0,currentCapital:0,ops:[],totalOps:0};
+  const fb=$('btn-finish');if(fb)fb.style.display='none';
+  renderOps();toast('Sessão encerrada!',I.check);showPage('config');
+}
+
+// ═══════════════════════════════════════
+//  OPS — Marcar, Desfazer, Deletar, Adicionar
+// ═══════════════════════════════════════
+async function marcar(idx,result){
+  const op=ST.ops[idx];if(!op||op.result!==null)return;
+  const profit=result==='win'?op.value*ST.payout-op.value:-op.value;
+  op.result=result;op.profit=profit;op.ts=new Date().toISOString();
+  ST.currentCapital+=profit;op.capitalAfter=ST.currentCapital;
+  await sb.from('operacoes').update({resultado:result,lucro:profit,capital_apos:ST.currentCapital,horario_registro:op.ts}).eq('id',op.dbId);
+  updateAll();renderOps();updateChart();
+  toast(result==='win'?`Win! ${fmt(profit)}`:`Loss. ${fmt(profit)}`,result==='win'?I.check:I.warn);
+}
+async function desfazer(idx){
+  const op=ST.ops[idx];if(!op||op.result===null)return;
+  op.result=null;op.profit=null;op.capitalAfter=null;
+  let cap=ST.capital;ST.ops.forEach(o=>{if(o.result!==null){const p=o.result==='win'?o.value*ST.payout-o.value:-o.value;o.profit=p;cap+=p;o.capitalAfter=cap}});
+  ST.currentCapital=cap;
+  await sb.from('operacoes').update({resultado:'pendente',lucro:0,capital_apos:null,horario_registro:null}).eq('id',op.dbId);
+  updateAll();renderOps();updateChart();toast('Operação desfeita.',I.undo);
+}
+async function deletarOp(idx){
+  const op=ST.ops[idx];if(!op)return;
+  await sb.from('operacoes').delete().eq('id',op.dbId);
+  ST.ops.splice(idx,1);
+  let cap=ST.capital;ST.ops.forEach(o=>{if(o.result!==null){const p=o.result==='win'?o.value*ST.payout-o.value:-o.value;o.profit=p;cap+=p;o.capitalAfter=cap}});
+  ST.currentCapital=cap;updateAll();renderOps();updateChart();toast('Operação removida.',I.trash);
+}
+function toggleAddForm(){
+  if(!ST.active){toast('Inicie uma sessão primeiro!',I.warn);return}
+  const f=$('add-op-form');f.classList.toggle('open');
+  if(f.classList.contains('open')){const v=$('new-op-val');if(v)v.value=ST.entryValue.toFixed(2);const n=$('new-op-name');if(n)n.focus()}
+}
+async function adicionarOp(){
+  if(!ST.active)return;
+  const name=$('new-op-name')?.value.trim()||`Operação ${ST.ops.length+1}`;
+  const val=parseFloat($('new-op-val')?.value)||ST.entryValue;
+  if(val<=0){toast('Valor inválido!',I.warn);return}
+  const{data:row,error}=await sb.from('operacoes').insert({sessao_id:ST.sessionId,usuario_id:currentUser.id,nome:name,valor_entrada:val,resultado:'pendente',lucro:0,ordem:ST.ops.length+1}).select().single();
+  if(error){toast('Erro: '+error.message,I.warn);return}
+  ST.ops.push({dbId:row.id,name,value:val,result:null,profit:null,capitalAfter:null,ts:null,ordem:row.ordem});
+  const f=$('add-op-form');if(f)f.classList.remove('open');const n=$('new-op-name');if(n)n.value='';
+  renderOps();updateAll();toast(`"${name}" adicionada!`,I.plus);
+}
+
+// ═══════════════════════════════════════
+//  RENDER OPS
+// ═══════════════════════════════════════
+function renderOps(){
+  const list=$('op-list');const empty=$('op-empty');const counter=$('ops-counter');
+  const done=ST.ops.filter(o=>o.result!==null).length;
+  if(counter)counter.textContent=`${done} / ${ST.ops.length} ops`;
+  if(!ST.active||ST.ops.length===0){list.innerHTML='';if(empty){empty.style.display='block';list.appendChild(empty)}return}
+  if(empty)empty.style.display='none';
+  list.innerHTML=ST.ops.map((op,idx)=>{
+    const pending=op.result===null;const rowClass=pending?'':(op.result==='win'?'won':'lost');const dotClass=pending?'':op.result;
+    let rHTML='';
+    if(pending){rHTML=`<div class="op-btns"><button class="op-win-btn" onclick="marcar(${idx},'win')">${I.bC} <span>Win</span></button><button class="op-loss-btn" onclick="marcar(${idx},'loss')">${I.bX} <span>Loss</span></button><button class="op-del-btn" onclick="deletarOp(${idx})" title="Remover">${I.bT}</button></div>`}
+    else{const sign=op.profit>=0?'+':'';rHTML=`<div class="op-btns"><div class="op-result ${op.result}">${sign}${fmt(op.profit)}</div><button class="op-undo-btn" onclick="desfazer(${idx})" title="Desfazer">${I.bU}</button><button class="op-del-btn" onclick="deletarOp(${idx})" title="Remover">${I.bT}</button></div>`}
+    const time=fmtTime(op.ts);const banca=op.capitalAfter?' · Banca: '+fmt(op.capitalAfter):'';
+    const meta=`Entrada: ${fmt(op.value)}${banca}${time?' · '+time:''}`;
+    return `<div class="op-row ${rowClass}"><div class="op-dot ${dotClass}"></div><div class="op-info"><div class="op-name">${op.name}</div><div class="op-meta">${meta}</div></div>${rHTML}</div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  UPDATE DASHBOARD
+// ═══════════════════════════════════════
+function updateAll(){
+  if(!ST.active)return;
+  const wins=ST.ops.filter(o=>o.result==='win').length;const losses=ST.ops.filter(o=>o.result==='loss').length;
+  const done=wins+losses;const total=ST.ops.length;const pnl=ST.currentCapital-ST.capital;
+  const wr=done>0?(wins/done*100).toFixed(1):'—';
+  const s=id=>$(id);
+  if(s('d-capital'))s('d-capital').textContent=fmt(ST.currentCapital);
+  const diffEl=s('d-capital-diff');if(diffEl){diffEl.textContent=(pnl>=0?'+':'')+fmt(pnl);diffEl.className='sc-sub '+(pnl>=0?'green':'red')}
+  const pnlEl=s('d-pnl');if(pnlEl){pnlEl.textContent=(pnl>=0?'+':'')+fmt(pnl);pnlEl.className='sc-value '+(pnl>=0?'green':'red')}
+  if(s('d-pnl-pct'))s('d-pnl-pct').textContent=fmtPct(ST.currentCapital,ST.capital);
+  if(s('d-wr'))s('d-wr').textContent=wr==='—'?'— %':wr+'%';
+  if(s('d-wr-sub'))s('d-wr-sub').textContent=done>0?`${wins}W / ${losses}L`:'Sem ops ainda';
+  if(s('d-vd'))s('d-vd').innerHTML=`<span style="color:var(--green)">${wins}</span> / <span style="color:var(--red)">${losses}</span>`;
+  if(s('d-ops-done'))s('d-ops-done').textContent=done===0?'Nenhuma operação':`${done} de ${total} realizadas`;
+  if(s('d-prog-label'))s('d-prog-label').textContent=`${done} de ${total} ops`;
+  if(s('d-prog-fill'))s('d-prog-fill').style.width=total>0?(done/total*100)+'%':'0%';
+  if(s('d-sw'))s('d-sw').textContent='+'+fmt(ST.stopWin);
+  if(s('d-sl'))s('d-sl').textContent='-'+fmt(ST.stopLoss);
+  const badge=s('chart-badge');if(badge&&done>0){badge.style.display='inline-flex';badge.textContent=(pnl>=0?'▲ +':'▼ ')+fmt(pnl)+' ('+fmtPct(ST.currentCapital,ST.capital)+')';badge.style.background=pnl>=0?'rgba(5,217,142,.12)':'rgba(255,69,96,.12)';badge.style.borderColor=pnl>=0?'rgba(5,217,142,.3)':'rgba(255,69,96,.3)';badge.style.color=pnl>=0?'var(--green)':'var(--red)'}
+  const swHit=pnl>=ST.stopWin;const slHit=pnl<=-ST.stopLoss;
+  if(s('alert-sw'))s('alert-sw').style.display=swHit?'flex':'none';
+  if(s('alert-sl'))s('alert-sl').style.display=slHit?'flex':'none';
+  const bars=s('mini-bars');if(bars)bars.innerHTML=ST.ops.map(o=>{const cls=o.result==='win'?'win':o.result==='loss'?'loss':'none';const h=o.result===null?20:(o.result==='win'?34:14);return `<div class="mini-bar ${cls}" style="height:${h}px"></div>`}).join('')||'<div style="color:var(--text3);font-size:.72rem;padding:8px 0">Adicione operações</div>';
+}
+
+// ═══════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════
+let historyData=[];let historyFilter='all';
+async function loadHistory(){
+  const{data:sessions}=await sb.from('sessoes').select('*').eq('usuario_id',currentUser.id).order('criado_em',{ascending:false});
+  historyData=sessions||[];renderHistory();
+}
+function filterHistory(f,btn){
+  historyFilter=f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));if(btn)btn.classList.add('active');
+  renderHistory();
+}
+function renderHistory(){
+  const now=new Date();let filtered=historyData;
+  if(historyFilter==='today')filtered=historyData.filter(s=>new Date(s.criado_em).toDateString()===now.toDateString());
+  else if(historyFilter==='week'){const w=new Date(now);w.setDate(w.getDate()-7);filtered=historyData.filter(s=>new Date(s.criado_em)>=w)}
+  else if(historyFilter==='month'){const m=new Date(now);m.setMonth(m.getMonth()-1);filtered=historyData.filter(s=>new Date(s.criado_em)>=m)}
+  const completed=filtered.filter(s=>s.status==='concluida');
+  const totalProfit=completed.reduce((a,s)=>a+(+s.resultado_liquido||0),0);
+  const avgWr=completed.length?completed.reduce((a,s)=>{const w=s.wins_esperados||0;return a+w},0)/completed.length:0;
+  const best=completed.reduce((b,s)=>(+s.resultado_liquido||0)>(+b?.resultado_liquido||0)?s:b,completed[0]);
+  const hs=$('hist-stats');
+  if(hs)hs.innerHTML=`
+    <div class="stat-card"><div class="sc-label">Total Sessões</div><div class="sc-value white">${filtered.length}</div><div class="sc-sub">${completed.length} concluídas</div></div>
+    <div class="stat-card sc-green"><div class="sc-label">Lucro Acumulado</div><div class="sc-value ${totalProfit>=0?'green':'red'}">${fmt(totalProfit)}</div></div>
+    <div class="stat-card"><div class="sc-label">Win Rate Médio</div><div class="sc-value white">${avgWr?avgWr.toFixed(0)+'%':'—'}</div></div>
+    <div class="stat-card sc-blue"><div class="sc-label">Melhor Sessão</div><div class="sc-value blue">${best?fmt(+best.resultado_liquido||0):'—'}</div></div>`;
+  const hl=$('hist-list');
+  if(!filtered.length){hl.innerHTML='<p style="color:var(--text3);font-size:.8rem;text-align:center;padding:40px">Nenhuma sessão encontrada.</p>';return}
+  hl.innerHTML=filtered.map((s,i)=>{
+    const pnl=+s.resultado_liquido||0;const badge=s.status==='ativa'?'<span class="history-badge" style="background:rgba(56,189,248,.1);color:var(--blue);border:1px solid rgba(56,189,248,.2)">Ativa</span>':`<span class="history-badge ${pnl>=0?'profit':'loss-badge'}">${pnl>=0?'+':''}${fmt(pnl)}</span>`;
+    return `<div class="history-item" id="hist-${i}"><div class="history-header" onclick="toggleHist(${i})"><div style="flex:1"><div style="font-family:var(--fh);font-weight:700;font-size:.9rem">${fmtDate(s.criado_em)}</div><div style="font-size:.68rem;color:var(--text2)">Capital: ${fmt(+s.capital)} → ${s.capital_final?fmt(+s.capital_final):'...'} · ${s.total_ops} ops</div></div>${badge}</div><div class="history-details" id="hist-det-${i}"><p style="color:var(--text3);font-size:.75rem;padding:8px 0">Clique para carregar operações...</p></div></div>`;
+  }).join('');
+}
+async function toggleHist(i){
+  const el=$('hist-'+i);if(!el)return;el.classList.toggle('open');
+  if(el.classList.contains('open')){
+    const s=historyData[i];const det=$('hist-det-'+i);
+    det.innerHTML='<p style="color:var(--text3);font-size:.75rem">Carregando...</p>';
+    const{data:ops}=await sb.from('operacoes').select('*').eq('sessao_id',s.id).order('ordem');
+    if(!ops||!ops.length){det.innerHTML='<p style="color:var(--text3);font-size:.75rem">Sem operações.</p>';return}
+    det.innerHTML='<div style="margin-top:12px">'+ops.map(o=>{
+      const cls=o.resultado==='win'?'won':o.resultado==='loss'?'lost':'';const dot=o.resultado==='pendente'?'':o.resultado;
+      const res=o.resultado==='pendente'?'<span style="color:var(--text3);font-size:.72rem">Pendente</span>':`<span class="op-result ${o.resultado}">${o.resultado==='win'?'+':''}${fmt(+o.lucro)}</span>`;
+      return `<div class="op-row ${cls}" style="padding:10px 14px;margin-bottom:4px"><div class="op-dot ${dot}"></div><div class="op-info"><div class="op-name" style="font-size:.8rem">${o.nome}</div><div class="op-meta">${fmt(+o.valor_entrada)}${o.horario_registro?' · '+fmtTime(o.horario_registro):''}</div></div>${res}</div>`;
+    }).join('')+'</div>';
+  }
+}
+
+// ═══════════════════════════════════════
+//  PROFILE
+// ═══════════════════════════════════════
+async function loadProfile(){
+  const{data:sessions}=await sb.from('sessoes').select('*').eq('usuario_id',currentUser.id).eq('status','concluida');
+  const total=sessions?.length||0;const profit=sessions?.reduce((a,s)=>a+(+s.resultado_liquido||0),0)||0;
+  let planName='—';
+  if(currentUser.plano_id){const{data:pl}=await sb.from('planos').select('nome').eq('id',currentUser.plano_id).single();if(pl)planName=pl.nome}
+  const initials=(currentUser.nome||currentUser.email).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  $('profile-content').innerHTML=`
+    <div class="profile-card"><div class="profile-avatar">${initials}</div><div class="profile-info"><h2>${currentUser.nome||'Sem nome'}</h2><p>${currentUser.email}</p></div></div>
+    <div class="panel" style="margin-bottom:16px">
+      <div class="field-grid g2">
+        <div class="field"><label>Membro desde</label><div style="font-size:.9rem;color:var(--text)">${fmtDate(currentUser.criado_em)}</div></div>
+        <div class="field"><label>Plano</label><div style="font-size:.9rem;color:var(--green)">${planName}</div></div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-top:24px">Estatísticas Gerais</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="sc-label">Sessões</div><div class="sc-value white">${total}</div></div>
+      <div class="stat-card sc-green"><div class="sc-label">Lucro Total</div><div class="sc-value ${profit>=0?'green':'red'}">${fmt(profit)}</div></div>
+      <div class="stat-card"><div class="sc-label">Último Acesso</div><div class="sc-value white" style="font-size:1rem">${fmtDate(currentUser.ultimo_acesso)}</div></div>
+      <div class="stat-card sc-blue"><div class="sc-label">Média/Sessão</div><div class="sc-value blue">${total?fmt(profit/total):'—'}</div></div>
+    </div>
+    <div class="btn-row" style="margin-top:24px"><button class="btn btn-red" onclick="handleLogout()" style="flex:none;padding:12px 28px">Sair da Conta</button></div>`;
+}
+
+// ═══════════════════════════════════════
+//  SUPERADMIN — Overview
+// ═══════════════════════════════════════
+async function loadSAOverview(){
+  const{data:admins}=await sb.from('usuarios').select('*').eq('role','admin');
+  const{data:users}=await sb.from('usuarios').select('id').eq('role','user');
+  const today=new Date();today.setHours(0,0,0,0);
+  const{data:sessToday}=await sb.from('sessoes').select('id').gte('criado_em',today.toISOString());
+  $('sa-stats').innerHTML=`
+    <div class="stat-card sc-green"><div class="sc-label">Total Admins</div><div class="sc-value green">${admins?.length||0}</div></div>
+    <div class="stat-card sc-blue"><div class="sc-label">Total Usuários</div><div class="sc-value blue">${users?.length||0}</div></div>
+    <div class="stat-card"><div class="sc-label">Sessões Hoje</div><div class="sc-value white">${sessToday?.length||0}</div></div>
+    <div class="stat-card"><div class="sc-label">Total Geral</div><div class="sc-value white">${(admins?.length||0)+(users?.length||0)}</div></div>`;
+  $('sa-recent-admins').innerHTML=admins?.length?`<table class="data-table"><thead><tr><th>Nome</th><th>Email</th><th>Status</th><th>Cadastro</th></tr></thead><tbody>${admins.slice(0,5).map(a=>`<tr><td>${a.nome}</td><td>${a.email}</td><td class="${a.ativo?'status-active':'status-inactive'}">${a.ativo?'Ativo':'Inativo'}</td><td>${fmtDate(a.criado_em)}</td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text3);font-size:.8rem">Nenhum admin cadastrado.</p>';
+}
+
+// ═══════════════════════════════════════
+//  SUPERADMIN — Admins CRUD
+// ═══════════════════════════════════════
+async function loadSAAdmins(){
+  const{data:admins}=await sb.from('usuarios').select('*').eq('role','admin').order('criado_em',{ascending:false});
+  const{data:cas}=await sb.from('clientes_admin').select('*');
+  const caMap={};(cas||[]).forEach(c=>caMap[c.usuario_id]=c);
+  $('sa-admins-table').innerHTML=admins?.length?`<table class="data-table"><thead><tr><th>Nome</th><th>Email</th><th>Plano</th><th>Usuários</th><th>Status</th><th>Ações</th></tr></thead><tbody>${admins.map(a=>{const ca=caMap[a.id]||{};return `<tr><td>${a.nome}</td><td style="font-size:.72rem">${a.email}</td><td>${ca.max_usuarios||'—'}</td><td>${ca.usuarios_ativos||0}</td><td class="${a.ativo?'status-active':'status-inactive'}">${a.ativo?'Ativo':'Inativo'}</td><td><button class="btn btn-sm ${a.ativo?'btn-red':'btn-blue'}" onclick="toggleAdmin('${a.id}',${a.ativo})">${a.ativo?'Desativar':'Ativar'}</button></td></tr>`}).join('')}</tbody></table>`:'<p style="color:var(--text3);font-size:.8rem">Nenhum admin.</p>';
+}
+async function toggleAdmin(id,isActive){
+  await sb.from('usuarios').update({ativo:!isActive}).eq('id',id);
+  if(isActive){await sb.from('usuarios').update({ativo:false}).eq('admin_id',id)}
+  else{await sb.from('usuarios').update({ativo:true}).eq('admin_id',id)}
+  toast(isActive?'Admin desativado.':'Admin ativado.',I.check);loadSAAdmins();loadSAOverview();
+}
+// Removido: modalCreateAdmin e createAdmin, criação nativa no Supabase
+
+// ═══════════════════════════════════════
+//  SUPERADMIN — Plans CRUD
+// ═══════════════════════════════════════
+async function loadSAPlans(){
+  const{data:plans}=await sb.from('planos').select('*').order('preco');
+  $('sa-plans-table').innerHTML=plans?.length?`<table class="data-table"><thead><tr><th>Nome</th><th>Max Usuários</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead><tbody>${plans.map(p=>`<tr><td>${p.nome}</td><td>${p.max_usuarios}</td><td>${fmt(+p.preco)}</td><td class="${p.ativo?'status-active':'status-inactive'}">${p.ativo?'Ativo':'Inativo'}</td><td><button class="btn btn-sm btn-outline" onclick="modalEditPlan('${p.id}','${p.nome}',${p.max_usuarios},${p.preco},${p.ativo})">Editar</button></td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text3);font-size:.8rem">Nenhum plano.</p>';
+}
+function modalCreatePlan(){
+  openModal('Criar Plano',`
+    <div class="auth-field"><label>Nome</label><input type="text" id="m-pl-nome" placeholder="Ex: Starter"></div>
+    <div class="auth-field"><label>Max Usuários</label><input type="number" id="m-pl-max" value="10" min="1"></div>
+    <div class="auth-field"><label>Preço (R$)</label><input type="number" id="m-pl-preco" value="97" step="0.01"></div>
+    <button class="auth-btn" onclick="createPlan()">Criar</button>`);
+}
+async function createPlan(){
+  const nome=$('m-pl-nome').value.trim();const max=parseInt($('m-pl-max').value);const preco=parseFloat($('m-pl-preco').value);
+  if(!nome){toast('Informe o nome!',I.warn);return}
+  await sb.from('planos').insert({nome,max_usuarios:max||10,preco:preco||0});closeModal();toast('Plano criado!',I.check);loadSAPlans();
+}
+function modalEditPlan(id,nome,max,preco,ativo){
+  openModal('Editar Plano',`
+    <div class="auth-field"><label>Nome</label><input type="text" id="m-epl-nome" value="${nome}"></div>
+    <div class="auth-field"><label>Max Usuários</label><input type="number" id="m-epl-max" value="${max}"></div>
+    <div class="auth-field"><label>Preço (R$)</label><input type="number" id="m-epl-preco" value="${preco}" step="0.01"></div>
+    <div class="btn-row"><button class="auth-btn" onclick="savePlan('${id}')">Salvar</button><button class="btn btn-sm ${ativo?'btn-red':'btn-blue'}" onclick="togglePlan('${id}',${ativo})" style="margin-top:8px;width:100%;padding:12px">${ativo?'Desativar Plano':'Ativar Plano'}</button></div>`);
+}
+async function savePlan(id){
+  await sb.from('planos').update({nome:$('m-epl-nome').value.trim(),max_usuarios:parseInt($('m-epl-max').value),preco:parseFloat($('m-epl-preco').value)}).eq('id',id);
+  closeModal();toast('Plano atualizado!',I.check);loadSAPlans();
+}
+async function togglePlan(id,ativo){await sb.from('planos').update({ativo:!ativo}).eq('id',id);closeModal();toast(ativo?'Plano desativado.':'Plano ativado.',I.check);loadSAPlans()}
+
+// ═══════════════════════════════════════
+//  ADMIN — Overview
+// ═══════════════════════════════════════
+async function loadAdmOverview(){
+  const{data:ca}=await sb.from('clientes_admin').select('*').eq('usuario_id',currentUser.id).single();
+  const{data:membros}=await sb.from('membros').select('usuario_id').eq('admin_id',currentUser.id);
+  const uids=(membros||[]).map(m=>m.usuario_id);
+  let totalSessions=0,totalWr=0,totalCap=0;
+  if(uids.length){
+    const{data:sessions}=await sb.from('sessoes').select('*').in('usuario_id',uids).eq('status','concluida');
+    totalSessions=sessions?.length||0;
+    if(totalSessions){totalCap=sessions.reduce((a,s)=>a+(+s.resultado_liquido||0),0)/totalSessions}
+  }
+  let planName='—';
+  if(ca?.plano_id){const{data:pl}=await sb.from('planos').select('nome').eq('id',ca.plano_id).single();if(pl)planName=pl.nome}
+  const max=ca?.max_usuarios||0;const ativos=ca?.usuarios_ativos||0;
+  $('adm-stats').innerHTML=`
+    <div class="stat-card sc-green"><div class="sc-label">Plano</div><div class="sc-value green" style="font-size:1.1rem">${planName}</div></div>
+    <div class="stat-card"><div class="sc-label">Usuários Ativos</div><div class="sc-value white">${ativos} / ${max}</div><div class="sc-sub">${max-ativos} vagas restantes</div></div>
+    <div class="stat-card sc-blue"><div class="sc-label">Total Sessões</div><div class="sc-value blue">${totalSessions}</div></div>
+    <div class="stat-card"><div class="sc-label">Média Lucro/Sessão</div><div class="sc-value white">${totalSessions?fmt(totalCap):'—'}</div></div>`;
+  $('adm-user-stats').innerHTML=`<p style="color:var(--text2);font-size:.8rem">${uids.length} usuários cadastrados, ${totalSessions} sessões realizadas.</p>`;
+}
+
+// ═══════════════════════════════════════
+//  ADMIN — Users CRUD
+// ═══════════════════════════════════════
+async function loadAdmUsers(){
+  const{data:membros}=await sb.from('membros').select('*,usuarios!membros_usuario_id_fkey(*)').eq('admin_id',currentUser.id);
+  const{data:ca}=await sb.from('clientes_admin').select('*').eq('usuario_id',currentUser.id).single();
+  const atLimit=(ca?.usuarios_ativos||0)>=(ca?.max_usuarios||0);
+  const btn=$('adm-add-user-btn');if(btn){btn.style.display='none';} // Botão ocultado, criação via Supabase
+  $('adm-users-table').innerHTML=membros?.length?`<table class="data-table"><thead><tr><th>Nome</th><th>Email</th><th>Status</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>${membros.map(m=>{const u=m.usuarios;return `<tr><td>${u.nome}</td><td style="font-size:.72rem">${u.email}</td><td class="${u.ativo?'status-active':'status-inactive'}">${u.ativo?'Ativo':'Inativo'}</td><td>${fmtDate(u.criado_em)}</td><td><button class="btn btn-sm ${u.ativo?'btn-red':'btn-blue'}" onclick="toggleUser('${u.id}','${m.id}',${u.ativo})">${u.ativo?'Desativar':'Ativar'}</button> <button class="btn btn-sm btn-outline" onclick="viewUserSessions('${u.id}','${u.nome}')">Sessões</button></td></tr>`}).join('')}</tbody></table>`:'<p style="color:var(--text3);font-size:.8rem">Nenhum usuário. Clique em "+ Novo Usuário".</p>';
+}
+async function toggleUser(uid,memId,isActive){
+  await sb.from('usuarios').update({ativo:!isActive}).eq('id',uid);
+  await sb.from('membros').update({ativo:!isActive}).eq('id',memId);
+  toast(isActive?'Usuário desativado.':'Usuário ativado.',I.check);loadAdmUsers();loadAdmOverview();
+}
+// Removido: modalCreateUser e createUser, agora feito via Supabase Dashboard
+async function viewUserSessions(uid,nome){
+  const{data:sessions}=await sb.from('sessoes').select('*').eq('usuario_id',uid).order('criado_em',{ascending:false}).limit(20);
+  const body=sessions?.length?`<div style="max-height:400px;overflow-y:auto">${sessions.map(s=>{const pnl=+s.resultado_liquido||0;return `<div style="padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div style="font-family:var(--fh);font-weight:600;font-size:.85rem">${fmtDate(s.criado_em)}</div><div style="font-size:.68rem;color:var(--text2)">Capital: ${fmt(+s.capital)} · ${s.total_ops} ops · ${s.status}</div></div><div style="font-family:var(--fh);font-weight:800;color:${pnl>=0?'var(--green)':'var(--red)'}">${s.status==='concluida'?fmt(pnl):'Em andamento'}</div></div>`}).join('')}</div>`:'<p style="color:var(--text3);font-size:.8rem;padding:20px">Sem sessões.</p>';
+  openModal(`Sessões de ${nome}`,body);
+}
+
+// ═══════════════════════════════════════
+//  BOOTSTRAP & INITIALIZATION
+// ═══════════════════════════════════════
+let sb = null;
+
+async function boot(){
+  try {
+    // 1. Garantir que a overlay de loading suma se houver erro crítico
+    const hideLoading = () => {
+      const el = document.getElementById('loading-overlay');
+      if (el) el.style.display = 'none';
+    };
+
+    // 2. Verificar se as bibliotecas carregaram
+    if (typeof supabase === 'undefined') {
+      showScreen('login');
+      const err = document.getElementById('login-error');
+      if (err) {
+        err.textContent = '❌ Erro: Biblioteca do Supabase não carregou. Verifique sua conexão ou se scripts externos estão bloqueados.';
+        err.style.display = 'block';
+      }
+      return;
+    }
+
+    // 3. Verificar credenciais
+    if(SUPABASE_URL === 'SEU_SUPABASE_URL' || SUPABASE_KEY === 'SEU_SUPABASE_ANON_KEY'){
+      showScreen('login');
+      const err = document.getElementById('login-error');
+      if(err) {
+        err.textContent = '⚠️ Configure as credenciais do Supabase no topo do arquivo index.html antes de usar.';
+        err.style.display = 'block';
+      }
+      return;
+    }
+
+    // 4. Inicializar Cliente Supabase com Try/Catch
+    try {
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch (e) {
+      console.error('Erro ao inicializar Supabase:', e);
+      showScreen('login');
+      const err = document.getElementById('login-error');
+      if(err) {
+        err.textContent = '❌ Erro ao inicializar Supabase: ' + e.message;
+        err.style.display = 'block';
+      }
+      return;
+    }
+
+    // 5. Verificar Sessão com Timeout
+    const sessionPromise = sb.auth.getSession();
+    const timeout = new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+    
+    let sessionResult;
+    try {
+      const { data } = await Promise.race([sessionPromise, timeout]);
+      sessionResult = data?.session;
+    } catch (e) {
+      console.error('Session error:', e);
+      if(e.message === 'timeout') {
+        showScreen('login');
+        const err = document.getElementById('login-error');
+        if(err) {
+          err.textContent = '⏱️ Tempo esgotado ao conectar ao banco de dados. Verifique suas credenciais.';
+          err.style.display = 'block';
+        }
+        return;
+      }
+      throw e;
+    }
+
+    if(sessionResult?.user){
+      await loadUser(sessionResult.user.id);
+      if(currentUser?.role === 'user'){
+        await restoreActiveSession();
+        setupConfigListeners();
+        previewCalc();
+      }
+    } else {
+      showScreen('login');
+    }
+
+    // Listen for auth changes after check
+    sb.auth.onAuthStateChange((event, session) => {
+      if(event === 'SIGNED_OUT'){ currentUser = null; showScreen('login'); }
+    });
+
+  } catch (err) {
+    console.error('Fatal Boot Error:', err);
+    // Emergência: tenta forçar o sumiço do loading no pior cenário
+    const l = document.getElementById('loading-overlay'); if(l) l.style.display = 'none';
+    const login = document.getElementById('screen-login'); if(login) login.style.display = 'flex';
+    const errEl = document.getElementById('login-error');
+    if(errEl) {
+      errEl.textContent = '❌ Erro crítico na inicialização: ' + err.message;
+      errEl.style.display = 'block';
+    }
+  }
+}
+
+// Iniciar quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
